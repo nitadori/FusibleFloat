@@ -6,15 +6,6 @@
 #endif
 // #define FUSIBLE_FLOAT_ROUND_LEFT_PRODUCT
 
-#ifndef FUSIBLE_FLOAT_NO_ALIASE
-#  ifndef FUSIBLE_FLOAT_FLOAT_ALIAS
-#    define FUSIBLE_FLOAT_FLOAT_ALIAS Ffloat
-#  endif
-#  ifndef FUSIBLE_FLOAT_DOUBLE_ALIAS
-#    define FUSIBLE_FLOAT_DOUBLE_ALIAS Fdouble
-#  endif
-#endif
-
 template <typename Float>
 class FusibleFloat{
 public:
@@ -104,7 +95,7 @@ private:
 	};
 };
 
-#ifndef FUSIBLE_FLOAT_NO_ALIASE
-using FUSIBLE_FLOAT_FLOAT_ALIAS = FusibleFloat<float>;
-using FUSIBLE_FLOAT_DOUBLE_ALIAS = FusibleFloat<double>;
+#ifndef FUSIBLE_FLOAT_NO_TYPE_ALIASE
+using Ffloat = FusibleFloat<float>;
+using Fdouble = FusibleFloat<double>;
 #endif

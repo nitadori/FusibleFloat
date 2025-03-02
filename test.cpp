@@ -6,6 +6,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+// #define FUSIBLE_FLOAT_NO_TYPE_ALIASE
 // #define FUSIBLE_FLOAT_FUSE_LVALUE
 // #define FUSIBLE_FLOAT_ROUND_LEFT_PRODUCT
 // #define FUSIBLE_FLOAT_NO_FUSE_RVALUE
