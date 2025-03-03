@@ -84,4 +84,87 @@ lvalue も fuse させてしまった方が難しいルールが減ってよか�
 
 # TODO
 
-ライセンスの追加とこの説明書の英語版
+ライセンスの追加と~~この説明書の英語版~~
+
+---
+
+# Introduction
+
+This is a C++ class designed to address the need for using FMA (fused multiply-add) instructions while writing source code with operators `+ - *`, making expressions look closer to mathematical notation. At the same time, it avoids unwanted compiler optimizations that alter precision[^2].
+
+[^2]: In C language specifications, an optimization called FP contract (which refers to expression contraction, not a contractual agreement) allows such optimizations. This implementation assumes that such optimizations are turned off.
+
+# Usage
+
+```C++
+template <typename Float> class FusibleFloat;
+using Ffloat = FusibleFloat<float>;
+using Fdouble = FusibleFloat<double>;
+```
+
+By replacing `float/double` with `Ffloat/Fdouble`, expressions will automatically use `std::fma()`. Since implicit type conversions to and from `float/double` are [defined](FusibleFloat.hpp#L12-L14), assignments and conversions between them are possible. If you want to use different names instead of `Ffloat/Fdouble`, define `FUSIBLE_FLOAT_NO_TYPE_ALIASE` before including the header.
+
+Internally, when `operator*()` is applied to `FusibleFloat`, it stores the values in `FusibleProduct`. If `+` or `-` is subsequently used, `std::fma()` is called. Otherwise, `operator Float()` is used to compute the product and round the result.
+
+# Detailed Behavior
+
+Since `float/double` is used when FMA should not be applied, a key issue is whether to fuse multiplication when combined with `Ffloat/Fdouble`. The default behavior is as follows:
+
+1. Multiplication with an lvalue (`float/double` ordinary variable) is **not fused**.
+2. Multiplication with an rvalue (`float/double` immediate value, function return value, or temporary result) **is fused**.
+
+This avoids the need to explicitly write `Ffloat(1.5f)` instead of `1.5f`, keeping expressions concise. These behaviors can be modified using `FUSIBLE_FLOAT_FUSE_LVALUE` or `FUSIBLE_FLOAT_NO_FUSE_RVALUE` at the time of inclusion.
+
+For addition and subtraction operands (the third argument of `std::fma()`), no such type distinction is made—everything will be fused.
+
+It is theoretically possible to define a type that refuses to fuse with `FusibleProduct`, but no practical use case was found.
+
+# Ambiguity and Solutions
+
+Given `Ffloat a, b, c, d`, the expression `a*b + c*d` results in an ambiguity error. This is because one of the products must be rounded before performing FMA, and it is unclear which one should be prioritized. To resolve this:
+
+- Use the unary `+` operator: `+(a*b) + c*d`. This forces `operator float()` to be invoked on the left product, rounding the multiplication result.
+- Write `0.0f + a*b + c*d`. This results in two `std::fma()` operations but achieves the same effect.
+
+Alternatively, defining `FUSIBLE_FLOAT_ROUND_LEFT_PRODUCT` enables this left-rounding behavior by default.
+
+For expressions like `a*b*c + d`, `a*b` is evaluated first, becomes `float &&`, then fuses with `c`, effectively behaving like `fmaf(a*b, c, d)`.
+
+# About [test.cpp](test.cpp)
+
+This is not a comprehensive test suite, but it demonstrates behavior verification. Performing `std::fma(a, b, -a*b)` extracts rounding errors from multiplication, showing:
+
+```bash
+test1
+0.000000e+00
+-3.576279e-09
+0.000000e+00
+-3.576279e-09
+0.000000e+00
+-3.576279e-09
+test2
+3.576279e-09
+-3.576279e-09
+3.576279e-09
+3.576279e-09
+```
+
+Different results may appear depending on the compiler and FPU.
+
+# Tips
+
+The unary `+` operator has useful applications:
+
+1. When applied to `FusibleProduct`, it invokes `operator Float()`. This is useful when explicitly rounding multiplication results or passing them to `printf()`.
+2. When applied to lvalue `float/double`, it converts them to rvalues. This ensures FMA when writing expressions like [quadratic polynomials](test.cpp#L17).
+
+# Discussion
+
+A more rigorous library design would only apply FMA when all three operands (`a*b + c`) are `FusibleFloat` and would keep the return type as `FusibleFloat`, minimizing implicit conversions. However, this would make handling immediate values (`1.5f`) inconvenient. Allowing rvalue fusion was a compromise to maintain usability. It might have been better to fuse lvalues as well to simplify the rules.
+
+Strictly speaking, true fusion applies to multiplication and addition/subtraction, not the operands themselves. The name "FusibleFloat" was chosen for lack of a better alternative.
+
+# TODO
+
+- Add a license
+- ~~Provide an English version of this document~~
