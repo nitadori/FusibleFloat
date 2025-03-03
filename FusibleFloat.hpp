@@ -9,10 +9,13 @@
 template <typename Float>
 class FusibleFloat{
 public:
-	FusibleFloat(const Float val) : val(val) {}
+	FusibleFloat(const Float &val) : val(val) {}
 
 	operator Float() const { return val; }
 
+	FusibleFloat() = default;
+	FusibleFloat(const FusibleFloat &) = default;
+	FusibleFloat &operator=(const FusibleFloat &) = default;
 private:
 	struct FusibleProduct;
 
